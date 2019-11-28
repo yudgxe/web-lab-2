@@ -63,6 +63,7 @@ func (srv *Server) handle(conn net.Conn) error {
 			}
 			break
 		}
+		fmt.Println(scanr.Text())
 		writer.WriteString(strings.ToUpper(scanr.Text()) + "\n")
 		writer.Flush()
 	}

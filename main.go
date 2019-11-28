@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 	"time"
-
-	"./server"
+	"web-lab-2/client"
+	"web-lab-2/server"
 )
 
 func main() {
@@ -13,12 +13,21 @@ func main() {
 	var addr string
 	fmt.Fscan(os.Stdin, &addr)
 	if len(addr) > 5 {
-
+		cln := client.Client{
+			Addr: addr,
+		}
+		err := cln.StartClient()
+		if err != nil {
+			fmt.Println(err)
+		}
 	} else {
 		srv := server.Server{
 			Addr:        addr,
-			IdleTimeout: 10 * time.Second,
+			IdleTimeout: 3 * time.Minute,
 		}
-		srv.StartServer()
+		err := srv.StartServer()
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 }
