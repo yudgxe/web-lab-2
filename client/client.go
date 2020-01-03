@@ -5,10 +5,31 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"web-lab-2/protector"
 )
 
 type Client struct {
-	Addr string
+	Addr            string
+	protectorClient *protector.SessionProtector
+	currentKey      string
+}
+
+func (cln *Client) handSheak(conn net.Conn, hash string) bool {
+	cln.protectorClient = protector.NewSessionProtector(hash)
+	cln.currentKey = protector.Get_session_key()
+	clientKey := cln.protectorClient.Next_session_key(cln.currentKey)
+
+	fmt.Fprintf(conn, hash+"\n")
+	fmt.Fprintf(conn, cln.currentKey+"\n")
+
+	serverKey, _ := bufio.NewReader(conn).ReadString('\n')
+
+	if clientKey == serverKey {
+		cln.currentKey = clientKey
+		return true
+	}
+
+	return false
 }
 
 func (cln *Client) StartClient() error {
@@ -16,20 +37,26 @@ func (cln *Client) StartClient() error {
 	if err != nil {
 		return err
 	}
+
 	fmt.Println("Connect to " + cln.Addr)
 
+	println(cln.handSheak(conn, protector.Get_hash_str()))
+
 	go cln.handleConn(conn)
-	cln.read(conn)
+	cln.readConsole(conn)
 
 	return nil
 }
 
-func (cln *Client) read(conn net.Conn) error {
+func (cln *Client) readConsole(conn net.Conn) error {
 	reader := bufio.NewReader(os.Stdin)
 	writer := bufio.NewWriter(conn)
 
+	var str string
+	var err error
+
 	for {
-		str, err := reader.ReadString('\n')
+		str, err = reader.ReadString('\n')
 		if err != nil {
 			fmt.Println(err)
 			return err
@@ -41,7 +68,6 @@ func (cln *Client) read(conn net.Conn) error {
 			break
 		}
 	}
-
 	return nil
 }
 

@@ -1,11 +1,12 @@
-package main
+package protector
 
 import (
 	"math/rand"
 	"strconv"
+	"unicode"
 )
 
-func get_session_key() string {
+func Get_session_key() string {
 	var result = ""
 	for i := 0; i < 10; i++ {
 		result += strconv.Itoa(rand.Intn(9) + 1)
@@ -13,7 +14,7 @@ func get_session_key() string {
 	return result
 }
 
-func get_hash_str() string {
+func Get_hash_str() string {
 	var li = ""
 	for i := 0; i < 5; i++ {
 		li += strconv.Itoa(rand.Intn(6) + 1)
@@ -41,14 +42,32 @@ func reverse(value string) string {
 	return string(result)
 }
 
+func (sp *SessionProtector) Next_session_key(session_key string) string {
+	if sp.hash == "" {
+		return ""
+	}
+	for i := 0; i < len(sp.hash); i++ {
+		if !unicode.IsDigit(rune(sp.hash[i])) {
+			return ""
+		}
+	}
+	var result_int = 0
+	var int_hash int
+	var int_key int
+	for i := 0; i < len(sp.hash); i++ {
+		int_hash, _ = strconv.Atoi(string(sp.hash[i]))
+		int_key, _ = strconv.Atoi(sp.calc_hash(session_key, int_hash))
+		result_int += int_key
+	}
+	result := "0000000000" + strconv.Itoa(result_int)[0:10]
+	return result[len(result)-10:]
+}
+
 func (sp *SessionProtector) calc_hash(session_key string, vall int) string {
 	switch vall {
 	case 1:
 		var result = ""
-		key_int, err := strconv.Atoi(session_key[0:5])
-		if err != nil {
-			return ""
-		}
+		key_int, _ := strconv.Atoi(session_key[0:5])
 		result = "00" + strconv.Itoa(key_int%97)
 		return result[len(result)-2:]
 	case 2:
@@ -57,14 +76,10 @@ func (sp *SessionProtector) calc_hash(session_key string, vall int) string {
 		return session_key[5:] + session_key[:5]
 	case 4:
 		var num = 0
-		var key_int int
-		var err error
+		var int_key int
 		for i := 1; i < len(session_key)-1; i++ {
-			key_int, err = strconv.Atoi(string(session_key[i]))
-			if err != nil {
-				return ""
-			}
-			num += key_int + 41
+			int_key, _ = strconv.Atoi(string(session_key[i]))
+			num += int_key + 41
 		}
 		return strconv.Itoa(num)
 	case 5:
@@ -82,18 +97,14 @@ func (sp *SessionProtector) calc_hash(session_key string, vall int) string {
 
 }
 
-func main() {
-	var hash string = "13555"
-	var key string = "7242985673"
-	println(key)
+/*
+	var hash string = "13555"     //to server
+	init_key := get_session_key() // to server
+	protectorClient := NewSessionProtector(hash)
+	clientKey1 := protectorClient.next_session_key(init_key)
 
-	var protector1 = NewSessionProtector(hash)
-	println("///////////////////////////")
-	println(protector1.calc_hash(key, 1))
-	println(protector1.calc_hash(key, 2))
-	println(protector1.calc_hash(key, 3))
-	println(protector1.calc_hash(key, 4))
-	println(protector1.calc_hash(key, 5))
-	println(protector1.calc_hash(key, 6))
-
-}
+	protector := NewSessionProtector(hash)
+	serverKey1 := protector.next_session_key(init_key) //to cleint
+	println(serverKey1, "server key")
+	println(clientKey1, "cleint key")
+*/

@@ -37,7 +37,7 @@ class Session_protector:
 			result += int(self.__calc_hash(session_key, int(i)))
 		return ("0"*10 + str(result)[0:10])[-10:]
 
-	def calc_hash(self, session_key, val):
+	def __calc_hash(self, session_key, val):
 		"""calculate hash"""
 		result = ""
 		if val == 1:
@@ -65,32 +65,21 @@ class Session_protector:
 		else:
 			return str(int(session_key) + val)
 
-#initial - start with random string
+#initial - start with random string`
 hash_string = get_hash_str()
 skey_initial = get_session_key()
 protector1 = Session_protector(hash_string)
 protector2 = Session_protector(hash_string)
 #stage 0
-print(hash_string)
-print("7242985673")
-print("///////////////////////////")
-print(protector1.calc_hash("7242985673",1))
-print(protector1.calc_hash("7242985673",2))
-print(protector1.calc_hash("7242985673",3))
-print(protector1.calc_hash("7242985673",4))
-print(protector1.calc_hash("7242985673",5))
-print(protector1.calc_hash("7242985673",6))
-if False:
-	skey1 = protector1.next_session_key(skey_initial)
-	skey2 = protector2.next_session_key(skey_initial)
-
-	assert skey1 == skey2
-	#stage 1 - each protector use it's own skey and compare with another's side
-	skey3 = protector1.next_session_key(skey1)
-	skey4 = protector2.next_session_key(skey2)
-	assert skey3 == skey4
-	#stage 2
-	skey5 = protector1.next_session_key(skey3)
-	skey6 = protector2.next_session_key(skey4)
-	assert skey5 == skey6
-	print (skey1, skey2, skey3, skey4, skey5, skey6)
+skey1 = protector1.next_session_key(skey_initial)
+skey2 = protector2.next_session_key(skey_initial)
+assert skey1 == skey2
+#stage 1 - each protector use it's own skey and compare with another's side
+skey3 = protector1.next_session_key(skey1)
+skey4 = protector2.next_session_key(skey2)
+assert skey3 == skey4
+#stage 2
+skey5 = protector1.next_session_key(skey3)
+skey6 = protector2.next_session_key(skey4)
+assert skey5 == skey6
+print (skey1, skey2, skey3, skey4, skey5, skey6)

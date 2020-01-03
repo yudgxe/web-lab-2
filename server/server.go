@@ -6,6 +6,7 @@ import (
 	"net"
 	"strings"
 	"time"
+	"web-lab-2/protector"
 )
 
 type Server struct {
@@ -55,6 +56,15 @@ func (srv *Server) handle(conn net.Conn) error {
 	writer := bufio.NewWriter(conn)
 	scanr := bufio.NewScanner(reader)
 
+	hash, _ := reader.ReadString('\n')
+	print(hash)
+	skey, _ := reader.ReadString('\n')
+	print(skey)
+	protectorServer := protector.NewSessionProtector(hash)
+	serverKey := protectorServer.Next_session_key(skey)
+	writer.WriteString(serverKey + "\n")
+	writer.Flush()
+
 	for {
 		if !scanr.Scan() {
 			if err := scanr.Err(); err != nil {
@@ -63,7 +73,7 @@ func (srv *Server) handle(conn net.Conn) error {
 			}
 			break
 		}
-		fmt.Println(scanr.Text())
+		//fmt.Println(scanr.Text())
 		writer.WriteString(strings.ToUpper(scanr.Text()) + "\n")
 		writer.Flush()
 	}
