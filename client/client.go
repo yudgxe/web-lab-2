@@ -14,41 +14,42 @@ type Client struct {
 	currentKey      string
 }
 
-func (cln *Client) handSheak(conn net.Conn, hash string) bool {
-	cln.protectorClient = protector.NewSessionProtector(hash)
-	cln.currentKey = protector.Get_session_key()
-	clientKey := cln.protectorClient.Next_session_key(cln.currentKey)
-
-	fmt.Fprintf(conn, hash+"\n")
-	fmt.Fprintf(conn, cln.currentKey+"\n")
-
-	serverKey, _ := bufio.NewReader(conn).ReadString('\n')
-
-	if clientKey == serverKey {
-		cln.currentKey = clientKey
-		return true
-	}
-
-	return false
-}
-
 func (cln *Client) StartClient() error {
 	conn, err := net.Dial("tcp", cln.Addr)
 	if err != nil {
 		return err
 	}
-
 	fmt.Println("Connect to " + cln.Addr)
 
-	println(cln.handSheak(conn, protector.Get_hash_str()))
+	hashStr := protector.Get_hash_str()
+	fmt.Println("Start hash:", hashStr)
+	cln.currentKey = protector.Get_session_key()
+	fmt.Println("Start key:", cln.currentKey)
+	cln.protectorClient = protector.NewSessionProtector(hashStr)
 
-	go cln.handleConn(conn)
-	cln.readConsole(conn)
+	conn.Write([]byte(hashStr + "\n" + cln.currentKey + "\n"))
+
+	reader := bufio.NewReader(conn)
+	currentKey, err := reader.ReadString('\n')
+	if err != nil {
+		fmt.Println(err, conn.RemoteAddr())
+		return err
+	}
+	fmt.Println("Key form server:", currentKey[:len(currentKey)-1])
+	cln.currentKey = cln.protectorClient.Next_session_key(cln.currentKey)
+	if currentKey[:len(currentKey)-1] != cln.currentKey {
+		fmt.Println(":(")
+		return nil
+	} else {
+		fmt.Println(":)")
+	}
+	go cln.send(conn)
+	cln.get(conn)
 
 	return nil
 }
 
-func (cln *Client) readConsole(conn net.Conn) error {
+func (cln *Client) send(conn net.Conn) error {
 	reader := bufio.NewReader(os.Stdin)
 	writer := bufio.NewWriter(conn)
 
@@ -61,6 +62,9 @@ func (cln *Client) readConsole(conn net.Conn) error {
 			fmt.Println(err)
 			return err
 		}
+		cln.currentKey = cln.protectorClient.Next_session_key(cln.currentKey)
+		fmt.Println("Send key:", cln.currentKey)
+		writer.WriteString(cln.currentKey + "\n")
 		writer.WriteString(str)
 		err = writer.Flush()
 		if err != nil {
@@ -71,14 +75,14 @@ func (cln *Client) readConsole(conn net.Conn) error {
 	return nil
 }
 
-func (cln *Client) handleConn(conn net.Conn) error {
+func (cln *Client) get(conn net.Conn) error {
 	defer func() {
 		fmt.Println("Close connecting from server")
 		conn.Close()
 	}()
 
 	reader := bufio.NewReader(conn)
-	writer := bufio.NewWriter(os.Stdout)
+	//writer := bufio.NewWriter(os.Stdout)
 	scanr := bufio.NewScanner(reader)
 
 	for {
@@ -89,8 +93,15 @@ func (cln *Client) handleConn(conn net.Conn) error {
 			}
 			break
 		}
-		fmt.Fprintln(writer, scanr.Text())
-		writer.Flush()
+		currentKey := scanr.Text()
+		fmt.Println("Get key: ", currentKey)
+		cln.currentKey = cln.protectorClient.Next_session_key(cln.currentKey)
+		if currentKey != cln.currentKey {
+			fmt.Println(":(")
+			return nil
+		} else {
+			fmt.Println("Current key:", cln.currentKey)
+		}
 	}
 	return nil
 }

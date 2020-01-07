@@ -13,18 +13,22 @@ func main() {
 	fmt.Println("Enter the :port or ip:port")
 	var addr string
 	fmt.Fscan(os.Stdin, &addr)
-	if addr == "client" {
+	if len(addr) > 5 {
 		cln := client.Client{
-			Addr: "127.0.0.1:8000",
+			Addr: addr,
 		}
 		err := cln.StartClient()
 		if err != nil {
 			fmt.Println(err)
 		}
 	} else {
+		var max int
+		fmt.Println("Enter max:")
+		fmt.Fscan(os.Stdin, &max)
 		srv := server.Server{
 			Addr:        addr,
 			IdleTimeout: 3 * time.Minute,
+			MaxInit:     max,
 		}
 		err := srv.StartServer()
 		if err != nil {
